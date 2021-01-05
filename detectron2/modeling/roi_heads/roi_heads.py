@@ -7,7 +7,7 @@ import torch
 from torch import nn
 
 from detectron2.config import configurable
-from detectron2.layers import ShapeSpec, nonzero_tuple
+from detectron2.layers import ShapeSpec, nonzero_tuple, get_norm
 from detectron2.structures import Boxes, ImageList, Instances, pairwise_iou
 from detectron2.utils.events import get_event_storage
 from detectron2.utils.registry import Registry
