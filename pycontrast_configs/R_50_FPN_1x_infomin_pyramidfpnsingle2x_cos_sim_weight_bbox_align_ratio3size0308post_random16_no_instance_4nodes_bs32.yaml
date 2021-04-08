@@ -1,0 +1,9 @@
+_BASE_: "R_50_FPN_1x.yaml"
+MODEL:
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+  WEIGHTS: "./self_det_output/PyramidFPNSingle2xCosSimWeightBboxAlign_ratio3size0308post_random16_4nodes_bs32/current_detectron2_C4.pkl"
+  RESNETS:
+    STRIDE_IN_1X1: False
+INPUT:
+  FORMAT: "RGB"
