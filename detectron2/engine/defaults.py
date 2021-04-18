@@ -280,7 +280,6 @@ class DefaultTrainer(TrainerBase):
 
         # Assume these objects must be constructed in this order.
         model = self.build_model(cfg)
-        # torch.save(model, "model.pth")
         optimizer = self.build_optimizer(cfg, model)
         data_loader = self.build_train_loader(cfg)
 
