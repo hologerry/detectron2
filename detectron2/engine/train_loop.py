@@ -226,6 +226,13 @@ class SimpleTrainer(TrainerBase):
         If you want to do something with the losses, you can wrap the model.
         """
         loss_dict = self.model(data)
+        print("-----------------before--------------------")
+        for param in self.model.backbone.parameters():
+            print("backbone", param.data)
+    
+        for param in self.model.roi_heads.box_head.parameters():
+            print("box_head", param.data)
+        print("-----------------end--------------------")
         losses = sum(loss_dict.values())
 
         """
