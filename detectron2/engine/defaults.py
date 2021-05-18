@@ -46,6 +46,10 @@ from .train_loop import AMPTrainer, SimpleTrainer, TrainerBase
 __all__ = ["default_argument_parser", "default_setup", "DefaultPredictor", "DefaultTrainer"]
 
 
+def count_trainable_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 def default_argument_parser(epilog=None):
     """
     Create a parser with some common arguments used by detectron2 users.
@@ -289,6 +293,8 @@ class DefaultTrainer(TrainerBase):
             optimizer = self.build_optimizer_linear_eval(cfg, model)
         else:
             optimizer = self.build_optimizer(cfg, model)
+        trainable_params = count_trainable_parameters(model)
+        print("trainable_params", trainable_params)
         data_loader = self.build_train_loader(cfg)
 
         # For training, wrap with DDP. But don't need this for inference.
