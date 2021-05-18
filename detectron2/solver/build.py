@@ -250,18 +250,16 @@ def get_default_optimizer_params_linear_eval(
     )
     params: List[Dict[str, Any]] = []
     memo: Set[torch.nn.parameter.Parameter] = set()
-    for name, value in model.named_parameters():
-        print("model param names", name)
+
+
+    for param in model.backbone.parameters():
+        param.requires_grad = False
+    
+    for param in model.roi_heads.box_head.parameters():
+        param.requires_grad = False
 
     for module in model.modules():
-        print("module", module)
         for module_param_name, value in module.named_parameters(recurse=False):
-            print("module_param_name", module_param_name)
-            if 'backbone' in module_param_name:
-                value.requires_grad = False
-            if 'box_head' in module_param_name:
-                value.requires_grad = False
-
             if not value.requires_grad:
                 continue
             # Avoid duplicating parameters
