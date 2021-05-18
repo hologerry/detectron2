@@ -146,7 +146,7 @@ def main(args):
     consider writing your own training loop (see plain_train_net.py) or
     subclassing the trainer.
     """
-    trainer = Trainer(cfg)
+    trainer = Trainer(cfg, linear_eval=args.linear_eval)
     trainer.resume_or_load(resume=args.resume)
     if cfg.TEST.AUG.ENABLED:
         trainer.register_hooks(
