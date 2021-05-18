@@ -32,7 +32,7 @@ from detectron2.evaluation import (
     verify_results,
 )
 from detectron2.modeling import build_model
-from detectron2.solver import build_lr_scheduler, build_optimizer
+from detectron2.solver import build_lr_scheduler, build_optimizer, build_optimizer_linear_eval
 from detectron2.utils import comm
 from detectron2.utils.collect_env import collect_env_info
 from detectron2.utils.env import TORCH_VERSION, seed_all_rng
@@ -79,6 +79,11 @@ Run on multiple machines:
         action="store_true",
         help="Whether to attempt to resume from the checkpoint directory. "
         "See documentation of `DefaultTrainer.resume_or_load()` for what it means.",
+    )
+    parser.add_argument(
+        "--linear_eval",
+        action="store_true",
+        help="Whether to finetune the rpn, mask and head fc only. "
     )
     parser.add_argument("--eval-only", action="store_true", help="perform evaluation only")
     parser.add_argument("--num-gpus", type=int, default=1, help="number of gpus *per machine*")
@@ -267,7 +272,7 @@ class DefaultTrainer(TrainerBase):
         cfg (CfgNode):
     """
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, linear_eval=False):
         """
         Args:
             cfg (CfgNode):
@@ -280,7 +285,10 @@ class DefaultTrainer(TrainerBase):
 
         # Assume these objects must be constructed in this order.
         model = self.build_model(cfg)
-        optimizer = self.build_optimizer(cfg, model)
+        if linear_eval:
+            optimizer = self.build_optimizer_linear_eval(cfg, model)
+        else:
+            optimizer = self.build_optimizer(cfg, model)
         data_loader = self.build_train_loader(cfg)
 
         # For training, wrap with DDP. But don't need this for inference.
@@ -452,6 +460,17 @@ class DefaultTrainer(TrainerBase):
         Overwrite it if you'd like a different optimizer.
         """
         return build_optimizer(cfg, model)
+
+    @classmethod
+    def build_optimizer_linear_eval(cls, cfg, model):
+        """
+        Returns:
+            torch.optim.Optimizer:
+
+        It now calls :func:`detectron2.solver.build_optimizer`.
+        Overwrite it if you'd like a different optimizer.
+        """
+        return build_optimizer_linear_eval(cfg, model)
 
     @classmethod
     def build_lr_scheduler(cls, cfg, optimizer):
