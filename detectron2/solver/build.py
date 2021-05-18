@@ -252,6 +252,7 @@ def get_default_optimizer_params_linear_eval(
     memo: Set[torch.nn.parameter.Parameter] = set()
     for module in model.modules():
         for module_param_name, value in module.named_parameters(recurse=False):
+            print("module_param_name", module_param_name)
             if 'backbone' in module_param_name:
                 value.requires_grad = False
             if 'box_head' in module_param_name:
