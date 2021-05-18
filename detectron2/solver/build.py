@@ -254,6 +254,7 @@ def get_default_optimizer_params_linear_eval(
         print("model param names", name)
 
     for module in model.modules():
+        print("module", module)
         for module_param_name, value in module.named_parameters(recurse=False):
             print("module_param_name", module_param_name)
             if 'backbone' in module_param_name:
