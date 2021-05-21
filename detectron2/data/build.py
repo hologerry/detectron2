@@ -28,6 +28,7 @@ This file contains the default logic to build a dataloader for training or testi
 __all__ = [
     "build_batch_data_loader",
     "build_detection_train_loader",
+    "build_detection_train_loader_mini",
     "build_detection_test_loader",
     "get_detection_dataset_dicts",
     "load_proposals_into_dataset",
@@ -384,6 +385,57 @@ def build_detection_train_loader(
     assert isinstance(sampler, torch.utils.data.sampler.Sampler)
     return build_batch_data_loader(
         dataset,
+        sampler,
+        total_batch_size,
+        aspect_ratio_grouping=aspect_ratio_grouping,
+        num_workers=num_workers,
+    )
+
+
+# TODO can allow dataset as an iterable or IterableDataset to make this function more general
+@configurable(from_config=_train_loader_from_config)
+def build_detection_train_loader_mini(
+    dataset, *, mapper, sampler=None, total_batch_size, aspect_ratio_grouping=True, num_workers=0
+):
+    """
+    Build a dataloader for object detection with some default features.
+    This interface is experimental.
+
+    Args:
+        dataset (list or torch.utils.data.Dataset): a list of dataset dicts,
+            or a map-style pytorch dataset. They can be obtained by using
+            :func:`DatasetCatalog.get` or :func:`get_detection_dataset_dicts`.
+        mapper (callable): a callable which takes a sample (dict) from dataset and
+            returns the format to be consumed by the model.
+            When using cfg, the default choice is ``DatasetMapper(cfg, is_train=True)``.
+        sampler (torch.utils.data.sampler.Sampler or None): a sampler that
+            produces indices to be applied on ``dataset``.
+            Default to :class:`TrainingSampler`, which coordinates a random shuffle
+            sequence across all workers.
+        total_batch_size (int): total batch size across all workers. Batching
+            simply puts data into a list.
+        aspect_ratio_grouping (bool): whether to group images with similar
+            aspect ratio for efficiency. When enabled, it requires each
+            element in dataset be a dict with keys "width" and "height".
+        num_workers (int): number of parallel data loading workers
+
+    Returns:
+        torch.utils.data.DataLoader: a dataloader. Each output from it is a
+            ``list[mapped_element]`` of length ``total_batch_size / num_workers``,
+            where ``mapped_element`` is produced by the ``mapper``.
+    """
+    if isinstance(dataset, list):
+        dataset = DatasetFromList(dataset, copy=False)
+    if mapper is not None:
+        dataset = MapDataset(dataset, mapper)
+
+    mini_dataset = torch.utils.data.Subset(dataset, range(0, int(0.1 * len(dataset))))
+    if sampler is None:
+        sampler = TrainingSampler(len(mini_dataset))
+
+    assert isinstance(sampler, torch.utils.data.sampler.Sampler)
+    return build_batch_data_loader(
+        mini_dataset,
         sampler,
         total_batch_size,
         aspect_ratio_grouping=aspect_ratio_grouping,

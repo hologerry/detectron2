@@ -24,6 +24,7 @@ from detectron2.data import (
     MetadataCatalog,
     build_detection_test_loader,
     build_detection_train_loader,
+    build_detection_train_loader_mini,
 )
 from detectron2.evaluation import (
     DatasetEvaluator,
@@ -88,6 +89,11 @@ Run on multiple machines:
         "--linear_eval",
         action="store_true",
         help="Whether to finetune the rpn, mask and head fc only. "
+    )
+    parser.add_argument(
+        "--mini",
+        action="store_true",
+        help="Whether to finetune on the mini coco dataset. "
     )
     parser.add_argument("--eval-only", action="store_true", help="perform evaluation only")
     parser.add_argument("--num-gpus", type=int, default=1, help="number of gpus *per machine*")
@@ -276,7 +282,7 @@ class DefaultTrainer(TrainerBase):
         cfg (CfgNode):
     """
 
-    def __init__(self, cfg, linear_eval=False):
+    def __init__(self, cfg, linear_eval=False, mini=False):
         """
         Args:
             cfg (CfgNode):
@@ -293,9 +299,11 @@ class DefaultTrainer(TrainerBase):
             optimizer = self.build_optimizer_linear_eval(cfg, model)
         else:
             optimizer = self.build_optimizer(cfg, model)
-        trainable_params = count_trainable_parameters(model)
-        print("trainable_params", trainable_params)
-        data_loader = self.build_train_loader(cfg)
+
+        if mini:
+            data_loader = self.build_train_loader_mini(cfg)
+        else:
+            data_loader = self.build_train_loader(cfg)
 
         # For training, wrap with DDP. But don't need this for inference.
         if comm.get_world_size() > 1:
@@ -496,6 +504,18 @@ class DefaultTrainer(TrainerBase):
         Overwrite it if you'd like a different data loader.
         """
         return build_detection_train_loader(cfg)
+
+
+    @classmethod
+    def build_train_loader_mini(cls, cfg):
+        """
+        Returns:
+            iterable
+
+        It now calls :func:`detectron2.data.build_detection_train_loader`.
+        Overwrite it if you'd like a different data loader.
+        """
+        return build_detection_train_loader_mini(cfg)
 
     @classmethod
     def build_test_loader(cls, cfg, dataset_name):
