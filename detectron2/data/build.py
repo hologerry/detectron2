@@ -259,61 +259,6 @@ def get_detection_dataset_dicts(
     return dataset_dicts
 
 
-def get_detection_dataset_dicts_mini(
-    dataset_names, filter_empty=True, min_keypoints=0, proposal_files=None
-):
-    """
-    Load and prepare dataset dicts for instance detection/segmentation and semantic segmentation.
-
-    Args:
-        dataset_names (str or list[str]): a dataset name or a list of dataset names
-        filter_empty (bool): whether to filter out images without instance annotations
-        min_keypoints (int): filter out images with fewer keypoints than
-            `min_keypoints`. Set to 0 to do nothing.
-        proposal_files (list[str]): if given, a list of object proposal files
-            that match each dataset in `dataset_names`.
-
-    Returns:
-        list[dict]: a list of dicts following the standard dataset dict format.
-    """
-    if isinstance(dataset_names, str):
-        dataset_names = [dataset_names]
-    assert len(dataset_names)
-    dataset_dicts = [DatasetCatalog.get(dataset_name) for dataset_name in dataset_names]
-    print("type", type(dataset_dicts[0]))
-    print("keys", dataset_dicts[0].keys())
-    for dataset_name, dicts in zip(dataset_names, dataset_dicts):
-        assert len(dicts), "Dataset '{}' is empty!".format(dataset_name)
-
-    if proposal_files is not None:
-        assert len(dataset_names) == len(proposal_files)
-        # load precomputed proposals from proposal files
-        dataset_dicts = [
-            load_proposals_into_dataset(dataset_i_dicts, proposal_file)
-            for dataset_i_dicts, proposal_file in zip(dataset_dicts, proposal_files)
-        ]
-
-    dataset_dicts = list(itertools.chain.from_iterable(dataset_dicts))
-
-    has_instances = "annotations" in dataset_dicts[0]
-    if filter_empty and has_instances:
-        dataset_dicts = filter_images_with_only_crowd_annotations(dataset_dicts)
-    if min_keypoints > 0 and has_instances:
-        dataset_dicts = filter_images_with_few_keypoints(dataset_dicts, min_keypoints)
-
-    if has_instances:
-        try:
-            class_names = MetadataCatalog.get(dataset_names[0]).thing_classes
-            check_metadata_consistency("thing_classes", dataset_names)
-            print_instances_class_histogram(dataset_dicts, class_names)
-        except AttributeError:  # class names are not available for this dataset
-            pass
-
-    assert len(dataset_dicts), "No valid data found in {}.".format(",".join(dataset_names))
-    mini_dataset_dicts = [torch.utils.data.Subset(dataset, range(0, int(0.1 * len(dataset)))) for dataset in dataset_dicts]
-    return mini_dataset_dicts
-
-
 def build_batch_data_loader(
     dataset, sampler, total_batch_size, *, aspect_ratio_grouping=False, num_workers=0
 ):
@@ -400,44 +345,6 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
 
 
 
-def _train_loader_from_config_mini(cfg, mapper=None, *, dataset=None, sampler=None):
-    if dataset is None:
-        dataset = get_detection_dataset_dicts_mini(
-            cfg.DATASETS.TRAIN,
-            filter_empty=cfg.DATALOADER.FILTER_EMPTY_ANNOTATIONS,
-            min_keypoints=cfg.MODEL.ROI_KEYPOINT_HEAD.MIN_KEYPOINTS_PER_IMAGE
-            if cfg.MODEL.KEYPOINT_ON
-            else 0,
-            proposal_files=cfg.DATASETS.PROPOSAL_FILES_TRAIN if cfg.MODEL.LOAD_PROPOSALS else None,
-        )
-
-    if mapper is None:
-        mapper = DatasetMapper(cfg, True)
-
-    if sampler is None:
-        sampler_name = cfg.DATALOADER.SAMPLER_TRAIN
-        logger = logging.getLogger(__name__)
-        logger.info("Using training sampler {}".format(sampler_name))
-        if sampler_name == "TrainingSampler":
-            sampler = TrainingSampler(len(dataset))
-        elif sampler_name == "RepeatFactorTrainingSampler":
-            repeat_factors = RepeatFactorTrainingSampler.repeat_factors_from_category_frequency(
-                dataset, cfg.DATALOADER.REPEAT_THRESHOLD
-            )
-            sampler = RepeatFactorTrainingSampler(repeat_factors)
-        else:
-            raise ValueError("Unknown training sampler: {}".format(sampler_name))
-
-    return {
-        "dataset": dataset,
-        "sampler": sampler,
-        "mapper": mapper,
-        "total_batch_size": cfg.SOLVER.IMS_PER_BATCH,
-        "aspect_ratio_grouping": cfg.DATALOADER.ASPECT_RATIO_GROUPING,
-        "num_workers": cfg.DATALOADER.NUM_WORKERS,
-    }
-
-
 # TODO can allow dataset as an iterable or IterableDataset to make this function more general
 @configurable(from_config=_train_loader_from_config)
 def build_detection_train_loader(
@@ -487,7 +394,7 @@ def build_detection_train_loader(
 
 
 # TODO can allow dataset as an iterable or IterableDataset to make this function more general
-@configurable(from_config=_train_loader_from_config_mini)
+@configurable(from_config=_train_loader_from_config)
 def build_detection_train_loader_mini(
     dataset, *, mapper, sampler=None, total_batch_size, aspect_ratio_grouping=True, num_workers=0
 ):
@@ -523,13 +430,13 @@ def build_detection_train_loader_mini(
     if mapper is not None:
         dataset = MapDataset(dataset, mapper)
 
-    # mini_dataset = torch.utils.data.Subset(dataset, range(0, int(0.1 * len(dataset))))
-    if sampler is None:
-        sampler = TrainingSampler(len(dataset))
-    print("mini dataset", len(dataset))
+    mini_dataset = torch.utils.data.Subset(dataset, range(0, int(0.1 * len(dataset))))
+
+    sampler = TrainingSampler(len(mini_dataset))
+    print("mini dataset", len(mini_dataset))
     assert isinstance(sampler, torch.utils.data.sampler.Sampler)
     return build_batch_data_loader(
-        dataset,
+        mini_dataset,
         sampler,
         total_batch_size,
         aspect_ratio_grouping=aspect_ratio_grouping,
