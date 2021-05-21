@@ -396,7 +396,8 @@ def build_detection_train_loader(
 # TODO can allow dataset as an iterable or IterableDataset to make this function more general
 @configurable(from_config=_train_loader_from_config)
 def build_detection_train_loader_mini(
-    dataset, *, mapper, sampler=None, total_batch_size, aspect_ratio_grouping=True, num_workers=0
+    dataset, *, mapper, sampler=None, total_batch_size, aspect_ratio_grouping=True, num_workers=0,
+    mini_ratio=0.1
 ):
     """
     Build a dataloader for object detection with some default features.
@@ -430,7 +431,7 @@ def build_detection_train_loader_mini(
     if mapper is not None:
         dataset = MapDataset(dataset, mapper)
 
-    mini_dataset = torch.utils.data.Subset(dataset, range(0, int(0.1 * len(dataset))))
+    mini_dataset = torch.utils.data.Subset(dataset, range(0, int(mini_ratio * len(dataset))))
 
     sampler = TrainingSampler(len(mini_dataset))
     print("mini dataset", len(mini_dataset))

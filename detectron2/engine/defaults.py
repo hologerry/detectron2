@@ -95,6 +95,11 @@ Run on multiple machines:
         action="store_true",
         help="Whether to finetune on the mini coco dataset. "
     )
+    parser.add_argument(
+        "--mini_ratio",
+        type=float, default=0.1,
+        help="mini coco dataset ratio."
+    )
     parser.add_argument("--eval-only", action="store_true", help="perform evaluation only")
     parser.add_argument("--num-gpus", type=int, default=1, help="number of gpus *per machine*")
     parser.add_argument("--num-machines", type=int, default=1, help="total number of machines")
@@ -282,7 +287,7 @@ class DefaultTrainer(TrainerBase):
         cfg (CfgNode):
     """
 
-    def __init__(self, cfg, linear_eval=False, mini=False):
+    def __init__(self, cfg, linear_eval=False, mini=False, mini_ratio=0.1):
         """
         Args:
             cfg (CfgNode):
@@ -301,7 +306,7 @@ class DefaultTrainer(TrainerBase):
             optimizer = self.build_optimizer(cfg, model)
 
         if mini:
-            data_loader = self.build_train_loader_mini(cfg)
+            data_loader = self.build_train_loader_mini(cfg, mini_ratio=mini_ratio)
         else:
             data_loader = self.build_train_loader(cfg)
 
@@ -507,7 +512,7 @@ class DefaultTrainer(TrainerBase):
 
 
     @classmethod
-    def build_train_loader_mini(cls, cfg):
+    def build_train_loader_mini(cls, cfg, mini_ratio):
         """
         Returns:
             iterable
@@ -515,7 +520,7 @@ class DefaultTrainer(TrainerBase):
         It now calls :func:`detectron2.data.build_detection_train_loader`.
         Overwrite it if you'd like a different data loader.
         """
-        return build_detection_train_loader_mini(cfg)
+        return build_detection_train_loader_mini(cfg, mini_ratio=mini_ratio)
 
     @classmethod
     def build_test_loader(cls, cfg, dataset_name):
