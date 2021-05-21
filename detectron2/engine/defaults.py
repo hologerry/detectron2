@@ -301,11 +301,13 @@ class DefaultTrainer(TrainerBase):
         # Assume these objects must be constructed in this order.
         model = self.build_model(cfg)
         if linear_eval:
+            print("Using linear eval optimizer")
             optimizer = self.build_optimizer_linear_eval(cfg, model)
         else:
             optimizer = self.build_optimizer(cfg, model)
 
         if mini:
+            print("Using mini dataset")
             data_loader = self.build_train_loader_mini(cfg, mini_ratio=mini_ratio)
         else:
             data_loader = self.build_train_loader(cfg)
