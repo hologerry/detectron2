@@ -280,6 +280,7 @@ def get_detection_dataset_dicts_mini(
         dataset_names = [dataset_names]
     assert len(dataset_names)
     dataset_dicts = [DatasetCatalog.get(dataset_name) for dataset_name in dataset_names]
+    print("type", type(dataset_dicts[0]))
     for dataset_name, dicts in zip(dataset_names, dataset_dicts):
         assert len(dicts), "Dataset '{}' is empty!".format(dataset_name)
 
