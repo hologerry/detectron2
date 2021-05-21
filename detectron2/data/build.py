@@ -432,7 +432,7 @@ def build_detection_train_loader_mini(
     mini_dataset = torch.utils.data.Subset(dataset, range(0, int(0.1 * len(dataset))))
     if sampler is None:
         sampler = TrainingSampler(len(mini_dataset))
-
+    print("mini dataset", len(mini_dataset))
     assert isinstance(sampler, torch.utils.data.sampler.Sampler)
     return build_batch_data_loader(
         mini_dataset,
