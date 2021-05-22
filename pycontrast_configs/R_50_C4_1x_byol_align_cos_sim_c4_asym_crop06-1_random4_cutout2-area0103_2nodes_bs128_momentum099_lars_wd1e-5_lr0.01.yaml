@@ -1,0 +1,11 @@
+_BASE_: "R_50_C4_1x.yaml"
+MODEL:
+  WEIGHTS: "./self_det_output/BYOLAlignCosSimC4_asym_crop06-1_random4_cutout2-area0103_2nodes_bs128_momentum099_lars_wd1e-5/current_detectron2_C4.pkl"
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+  RESNETS:
+    STRIDE_IN_1X1: False
+INPUT:
+  FORMAT: "RGB"
+SOLVER:
+  BASE_LR: 0.01
